@@ -31,6 +31,7 @@ class MyCovertChannel(CovertChannelBase):
                 super().send(packet, interface)
             time.sleep(idle_time)  # Idle time between bursts
 
+    
 
     def receive(self, interface="eth0", idle_threshold=0.05, log_file_name="received_log.log"):
         """
@@ -41,36 +42,42 @@ class MyCovertChannel(CovertChannelBase):
         current_bits = ""
         burst_count = 0
         last_packet_time = None
+        stop_sniffing = False
 
         def process_packet(packet):
-            nonlocal current_bits, message, burst_count, last_packet_time
+            nonlocal current_bits, message, burst_count, last_packet_time, stop_sniffing
             if ARP in packet:
                 current_time = time.time()
                 if last_packet_time and (current_time - last_packet_time > idle_threshold):
-                    # print(f"burst_count: {burst_count}")
+                    print(f"burst_count: {burst_count}")
                     # End of a burst
-                    if burst_count == 8:
+                    if burst_count == 4:
                         current_bits += '1'
-                    elif burst_count == 4:
+                    elif burst_count == 2:
                         current_bits += '0'
                     burst_count = 0
-                    # print(current_bits)
+                    print(current_bits)
 
                     # Convert 8 bits to a character when a byte is complete
                     if len(current_bits) == 8:
                         char = self.convert_eight_bits_to_character(current_bits)
                         message += char
+                        print(f"Message so far: {message}")
                         current_bits = ""
 
                 burst_count += 1
                 last_packet_time = current_time
 
-            # print(f"Message so far: {message}")
+           
             # Stop sniffing if the message ends with "."
-            return message.endswith(".")
+            stop_sniffing = message.endswith(".")
+        
+        def stop_filter(packet):
+            # print(f"stop sniffing: {stop_sniffing}")
+            return stop_sniffing
 
         # Start sniffing with stop_filter
-        sniff(iface=interface, filter="arp", prn=process_packet, stop_filter=process_packet)
+        sniff(iface=interface, filter="arp", prn=process_packet, stop_filter=stop_filter)
 
         # Log the final message
         print(f"Received message: {message}")
