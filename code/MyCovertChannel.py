@@ -18,7 +18,7 @@ class MyCovertChannel(CovertChannelBase):
         """
         - Generates a random binary message and sends it using packet bursts over ARP.
         """
-        binary_message = self.generate_random_binary_message_with_logging(log_file_name) # , min_length=2, max_length=2)
+        binary_message = self.generate_random_binary_message_with_logging(log_file_name, min_length=16, max_length=16)
         
         for bit in binary_message:
             burst_size = burst_size_1 if bit == '1' else burst_size_0
