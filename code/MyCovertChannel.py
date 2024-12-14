@@ -18,7 +18,7 @@ class MyCovertChannel(CovertChannelBase):
         """
         - Generates a random binary message and sends it using packet bursts over ARP.
         """
-        binary_message = self.generate_random_binary_message_with_logging(log_file_name)
+        binary_message = self.generate_random_binary_message_with_logging(log_file_name) # , min_length=2, max_length=2)
         
         for bit in binary_message:
             burst_size = burst_size_1 if bit == '1' else burst_size_0
@@ -51,9 +51,9 @@ class MyCovertChannel(CovertChannelBase):
                 if last_packet_time and (current_time - last_packet_time > idle_threshold):
                     print(f"burst_count: {burst_count}")
                     # End of a burst
-                    if burst_count == burst_size_1*2: # multiply by 2 because 2 arp packets one from sender to recevier and one from receiver to sender
+                    if burst_count == burst_size_1:
                         current_bits += '1'
-                    elif burst_count == burst_size_0*2:
+                    elif burst_count == burst_size_0:
                         current_bits += '0'
                     burst_count = 0
                     print(current_bits)
@@ -72,7 +72,7 @@ class MyCovertChannel(CovertChannelBase):
             return message.endswith(".")
 
         # Start sniffing with stop_filter
-        sniff(iface=interface, filter="arp", prn=process_packet, stop_filter=stop_filter)
+        sniff(iface=interface, filter="arp and ether dst ff:ff:ff:ff:ff:ff", prn=process_packet, stop_filter=stop_filter)
 
         # Log the final message
         print(f"Received message: {message}")
