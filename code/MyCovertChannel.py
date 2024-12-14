@@ -14,26 +14,25 @@ class MyCovertChannel(CovertChannelBase):
         - You can edit __init__.
         """
         super().__init__()
-    def send(self, interface="eth0", idle_time=0.1, log_file_name="sending_log.log"):  # TODO add config? 
+    def send(self, interface="eth0", burst_size_1 = 2, burst_size_0 = 1, idle_time=0.1, log_file_name="sending_log.log"):
         """
         - Generates a random binary message and sends it using packet bursts over ARP.
         """
         binary_message = self.generate_random_binary_message_with_logging(log_file_name)
         
         for bit in binary_message:
-            burst_size = 2 if bit == '1' else 1
+            burst_size = burst_size_1 if bit == '1' else burst_size_0
             for _ in range(burst_size):
-                
                 packet = Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(op=1, pdst="172.18.0.3") 
-
-                ### scapy.layers.l2.ARP(_pkt, /, *, hwtype=1, ptype=2048, hwlen=None, plen=None, op=1, hwsrc=None, psrc=None, hwdst=None, pdst=None)
                 print(packet.show())
                 super().send(packet, interface)
             time.sleep(idle_time)  # Idle time between bursts
 
-    
+        # send a last packet to convert last bits to char 
+        packet = Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(op=1, pdst="172.18.0.3")
+        super().send(packet, interface)
 
-    def receive(self, interface="eth0", idle_threshold=0.05, log_file_name="received_log.log"):
+    def receive(self, interface="eth0", burst_size_1=2, burst_size_0=1, idle_threshold=0.05, log_file_name="received_log.log"):
         """
         Captures ARP packets, decodes bursts into characters using base class's method.
         Stops sniffing when the message ends with ".".
@@ -42,18 +41,19 @@ class MyCovertChannel(CovertChannelBase):
         current_bits = ""
         burst_count = 0
         last_packet_time = None
-        stop_sniffing = False
 
         def process_packet(packet):
-            nonlocal current_bits, message, burst_count, last_packet_time, stop_sniffing
+            nonlocal current_bits, message, burst_count, last_packet_time
+
             if ARP in packet:
                 current_time = time.time()
+
                 if last_packet_time and (current_time - last_packet_time > idle_threshold):
                     print(f"burst_count: {burst_count}")
                     # End of a burst
-                    if burst_count == 4:
+                    if burst_count == burst_size_1*2: # multiply by 2 because 2 arp packets one from sender to recevier and one from receiver to sender
                         current_bits += '1'
-                    elif burst_count == 2:
+                    elif burst_count == burst_size_0*2:
                         current_bits += '0'
                     burst_count = 0
                     print(current_bits)
@@ -66,15 +66,10 @@ class MyCovertChannel(CovertChannelBase):
                         current_bits = ""
 
                 burst_count += 1
-                last_packet_time = current_time
+                last_packet_time = current_time         
 
-           
-            # Stop sniffing if the message ends with "."
-            stop_sniffing = message.endswith(".")
-        
         def stop_filter(packet):
-            # print(f"stop sniffing: {stop_sniffing}")
-            return stop_sniffing
+            return message.endswith(".")
 
         # Start sniffing with stop_filter
         sniff(iface=interface, filter="arp", prn=process_packet, stop_filter=stop_filter)
