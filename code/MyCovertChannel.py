@@ -23,36 +23,55 @@ class MyCovertChannel(CovertChannelBase):
         for bit in binary_message:
             burst_size = 2 if bit == '1' else 1
             for _ in range(burst_size):
-                packet = Ether(dst="ff:ff:ff:ff:ff:ff", type=0x0806) / ARP(pdst="172.18.0.3")  # TODO IP addr parameter or not ?
+                
+                packet = Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(op=1, pdst="172.18.0.3") 
 
                 ### scapy.layers.l2.ARP(_pkt, /, *, hwtype=1, ptype=2048, hwlen=None, plen=None, op=1, hwsrc=None, psrc=None, hwdst=None, pdst=None)
                 print(packet.show())
                 super().send(packet, interface)
             time.sleep(idle_time)  # Idle time between bursts
 
-    def receive(self, interface="eth0", timeout=10, idle_threshold=0.05, log_file_name="received_log.log"):
+
+    def receive(self, interface="eth0", idle_threshold=0.05, log_file_name="received_log.log"):
         """
-        - Captures ARP packets, decodes bursts into a binary message.
+        Captures ARP packets, decodes bursts into characters using base class's method.
+        Stops sniffing when the message ends with ".".
         """
-        packets = sniff(iface=interface, timeout=timeout, ) # filter="arp")
-        print(packets.summary())
         message = ""
+        current_bits = ""
         burst_count = 0
         last_packet_time = None
 
-        for packet in packets:
-            print(packet)
-            # if ARP in packet:
-            current_time = time.time()
-            if last_packet_time and (current_time - last_packet_time > idle_threshold):
-                # End of a burst
-                if burst_count == 2:
-                    message += '1'
-                elif burst_count == 1:
-                    message += '0'
-                burst_count = 0
-            burst_count += 1
-            last_packet_time = current_time
+        def process_packet(packet):
+            nonlocal current_bits, message, burst_count, last_packet_time
+            if ARP in packet:
+                current_time = time.time()
+                if last_packet_time and (current_time - last_packet_time > idle_threshold):
+                    # print(f"burst_count: {burst_count}")
+                    # End of a burst
+                    if burst_count == 8:
+                        current_bits += '1'
+                    elif burst_count == 4:
+                        current_bits += '0'
+                    burst_count = 0
+                    # print(current_bits)
 
-        # Log the received message
+                    # Convert 8 bits to a character when a byte is complete
+                    if len(current_bits) == 8:
+                        char = self.convert_eight_bits_to_character(current_bits)
+                        message += char
+                        current_bits = ""
+
+                burst_count += 1
+                last_packet_time = current_time
+
+            # print(f"Message so far: {message}")
+            # Stop sniffing if the message ends with "."
+            return message.endswith(".")
+
+        # Start sniffing with stop_filter
+        sniff(iface=interface, filter="arp", prn=process_packet, stop_filter=process_packet)
+
+        # Log the final message
+        print(f"Received message: {message}")
         self.log_message(message, log_file_name)
