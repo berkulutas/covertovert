@@ -6,12 +6,15 @@ from CovertChannelBase import CovertChannelBase
 
 class MyCovertChannel(CovertChannelBase):
     """
-    - You are not allowed to change the file name and class name.
-    - You can edit the class in any way you want (e.g. adding helper functions); however, there must be a "send" and a "receive" function, the covert channel will be triggered by calling these functions.
+    A class that implements a covert channel using ARP packet bursts.
+
+    This class extends CovertChannelBase and provides two main functionalities:
+    - Sending messages encoded in ARP packet bursts.
+    - Receiving and decoding messages from ARP packet bursts.
     """
     def __init__(self):
         """
-        - You can edit __init__.
+        Initializes the covert channel by calling the parent class (CovertChannelBase) constructor.
         """
         super().__init__()
     def send(self, interface="eth0", burst_size_1 = 2, burst_size_0 = 1, idle_time=0.1, log_file_name="sending_log.log"):
@@ -50,6 +53,9 @@ class MyCovertChannel(CovertChannelBase):
         last_packet_time = None
 
         def process_packet(packet):
+            """
+            Processes each captured packet to decode binary bits and update the message.
+            """
             nonlocal current_bits, message, burst_count, last_packet_time
 
             if ARP in packet:
@@ -76,6 +82,9 @@ class MyCovertChannel(CovertChannelBase):
                 last_packet_time = current_time         
 
         def stop_filter(packet):
+            """
+            Stops sniffing when the received message ends with a period ('.').
+            """
             return message.endswith(".")
 
         # Start sniffing with stop_filter
