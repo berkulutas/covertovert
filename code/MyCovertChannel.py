@@ -20,6 +20,8 @@ class MyCovertChannel(CovertChannelBase):
         """
         binary_message = self.generate_random_binary_message_with_logging(log_file_name, min_length=16, max_length=16) # TODO remove min max before submission
         
+        # Start sending packets and measure time
+        start = time.time()
         for bit in binary_message:
             burst_size = burst_size_1 if bit == '1' else burst_size_0
             for _ in range(burst_size):
@@ -28,9 +30,14 @@ class MyCovertChannel(CovertChannelBase):
                 super().send(packet, interface)
             time.sleep(idle_time)  # Idle time between bursts
 
-        # send a last packet to convert last bits to char 
+        # Send a last packet to convert last bits to char 
         packet = Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(op=1, pdst="172.18.0.3")
         super().send(packet, interface)
+
+        # Measure time and calculate capacity
+        end = time.time()
+        capacity = len(binary_message) / (end - start)
+        print(f"Capacity bits per second: {capacity}")
 
     def receive(self, interface="eth0", burst_size_1=2, burst_size_0=1, idle_threshold=0.05, log_file_name="received_log.log"):
         """
