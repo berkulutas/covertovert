@@ -26,7 +26,7 @@ The `send` function encodes a binary message into ARP packet bursts and transmit
   - `interface`: Network interface to send packets (default: `eth0`).
   - `burst_size_1` and `burst_size_0`: Burst sizes for binary `1` and `0`.
   - `idle_time`: Delay between bursts.
-  - `log_file_name`: Log file for the sent message.
+  - `log_file_name`: Log file for the sent message. ("sending_log.log")
 
 ### `receive` Function
 The `receive` function captures ARP packets and decodes the transmitted message:
@@ -34,7 +34,7 @@ The `receive` function captures ARP packets and decodes the transmitted message:
   - `interface`: Network interface to capture packets (default: `eth0`).
   - `burst_size_1` and `burst_size_0`: Expected burst sizes for binary `1` and `0`. It must be same with sender for consistency.
   - `idle_threshold`: Time threshold to identify the end of a burst.
-  - `log_file_name`: Log file for the received message.
+  - `log_file_name`: Log file for the received message. ("received_log.log")
 
 ## Covert Channel Capacity
 The covert channel capacity was measured as follows:
