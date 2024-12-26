@@ -44,22 +44,35 @@ The covert channel capacity was measured as follows:
    ```
    Capacity (bps) = Total Bits / Transmission Time (seconds)
    ```
-4. The measured capacity is **11.6264 bits per second**. 
+4. The measured capacity is **7.75 bits per second** with the following parameters:
+
+    | Parameter           | Value        |
+    |---------------------|--------------|
+    | **Send Parameters** |              |
+    | Burst Size for `1`  | `2`            |
+    | Burst Size for `0`  | `1`            |
+    | Idle Time           | `0.1` seconds  |
+    |                     |              |
+    | **Receive Parameters** |          |
+    | Burst Size for `1`  | `2`            |
+    | Burst Size for `0`  | `1`            |
+    | Idle Threshold      | `0.05` seconds |
 
 ## Limitations and Constraints
 1. **Idle Time**:
    - The `idle_time` parameter must be tuned to balance capacity and decoding accuracy. A lower `idle_time` increases capacity but risks decoding errors.
-   - The default `idle_time` is set to `0.1` seconds.
 2. **Idle Threshold**:
    - The `idle_threshold` defines the maximum time gap to consider packets as part of the same burst.
-   - Default `idle_threshold` is `0.05` seconds.
 3. **Burst Sizes**:
-   - The default burst sizes are:
-     - `burst_size_1 = 2` for binary `1`.
-     - `burst_size_0 = 1` for binary `0`.
-   - Incorrect burst sizes may lead to decoding errors.
-
-Note: When using WSL, the measured capacity is lower due to system overhead. And for the receiver to receive the packets correctly, we needed to raise the idle time to 0.5 and the idle threshold to 0.25.
+   - The burst sizes chosen for bit 1 and bit 0 must be different from each other
+   - Burst size parameters must be same in sender and receiver. Incorrect burst sizes may lead to decoding errors.
+   - The burst sizes chosen for bit 1 and bit 0 must be different from each other 
+4. **System-Specific Issues**:
+   - On some systems, such as WSL, the measured capacity is lower due to system overhead. To mitigate this, we raised `idle_time` to `0.5 seconds` and `idle_threshold` to `0.25 seconds`.
+5. **Idle Threshold Tuning**:
+   - Through testing, we observed issues when `idle_threshold` was set below `0.025 seconds`. While this may vary depending on the system, to ensure reliability, we recommend keeping `idle_threshold` above `0.03 seconds`.
+6. **Relationship Between Idle Time and Idle Threshold**:
+   - `idle_time` should always be greater than `idle_threshold` to account for network delays. A safe value for `idle_time` is at least 1.5 times the `idle_threshold` value to minimize decoding errors and ensure accurate message reconstruction.
 
 
 ## Authors
